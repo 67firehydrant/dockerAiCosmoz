@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-      - master # Menyesuaikan branch utama Anda
+      - master
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  # github.repository akan menghasilkan 'username/repository-name'
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
@@ -30,7 +30,6 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          # GITHUB_TOKEN disediakan otomatis oleh GitHub Actions
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract metadata (tags, labels) for Docker
@@ -41,13 +40,14 @@ jobs:
           tags: |
             type=ref,event=branch
             type=sha,format=short
-            latest
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile
+          # Kode aplikasi berada di subfolder docker/
+          context: ./docker
+          file: ./docker/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -1,8 +1,9 @@
 #!/bin/sh
 set -e
 
-# Port internal aplikasi. Dibuat tetap 3000 agar cocok dengan ingress
-# Cloudflare Tunnel (arahkan hostname tunnel -> http://localhost:3000).
+# Aplikasi mengikuti PORT yang di-inject Railway (mis. 8080), default 3000 saat lokal.
+# PENTING: ingress Cloudflare Tunnel HARUS menunjuk ke port yang sama.
+# Punyamu sudah diset ke http://localhost:8080 di dashboard — cocok. 👍
 export PORT="${PORT:-3000}"
 export HOSTNAME="0.0.0.0"
 

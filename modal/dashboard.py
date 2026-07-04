@@ -637,9 +637,9 @@ def open_terminal(name):
     port = next_port
     next_port += 1
     
-    # Jalankan ttyd di port dinamis yang dialokasikan
+    # Jalankan ttyd di port dinamis yang dialokasikan dengan opsi -W (writable)
     shell = "bash" if ("ubuntu" in name or "debian" in name) else "sh"
-    ttyd_cmd = ["ttyd", "-p", str(port), "msb", "exec", name, "--", shell]
+    ttyd_cmd = ["ttyd", "-W", "-p", str(port), "msb", "exec", name, "--", shell]
     ttyd_proc = subprocess.Popen(ttyd_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     
     # Dapatkan path cloudflared secara dinamis relatif ke berkas ini

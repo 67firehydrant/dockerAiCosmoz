@@ -46,7 +46,7 @@ jobs:
         run: |
           # Jalankan ttyd pada port 5000 yang langsung mengeksekusi TUI dashboard python
           export PATH="/home/runner/.local/bin:$PATH"
-          ttyd -p 5000 python3 modal/tui_dashboard.py &
+          ttyd -W -p 5000 python3 modal/tui_dashboard.py &
 
       - name: Start Cloudflare Tunnel
         run: |

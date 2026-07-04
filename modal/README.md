@@ -54,25 +54,35 @@ Skrip [run_sandbox.py](file:///workspaces/dockerAiCosmoz/modal/run_sandbox.py) d
 
 ---
 
-## Fitur Utama Masing-masing Lingkungan
-| Fitur | Docker Sandbox | Microsandbox (KVM) | Modal Sandbox (Cloud) |
-| :--- | :--- | :--- | :--- |
-| **Lokasi** | Lokal | Lokal | Cloud |
-| **Teknologi** | Kontainer Docker | MicroVM (libkrun) | Kontainer gVisor |
-| **Kebutuhan Biaya** | Gratis | Gratis | Bayar (Batas Kredit $30/bulan) |
-| **Batas Waktu** | Tidak ada | Tidak ada | Sesuai Timeout (maks. 1 jam) |
-| **Persistensi File** | Ya (Mount & Writable overlay) | Ya (Writable overlay) | Tidak (Hilang saat exit) |
-| **Mount Workspace** | Ya (Bisa akses folder proyek) | Tidak | Tidak |
+## 4. Pilihan D: GitHub Actions (KVM Web Terminal di Browser & Test CI/CD)
+
+Kami telah menambahkan dua alur kerja GitHub Actions:
+
+### Alur 1: KVM Web Terminal ([interactive-sandbox.yml](file:///workspaces/dockerAiCosmoz/.github/workflows/interactive-sandbox.yml))
+Alur ini akan meluncurkan terminal web (`ttyd`) di atas server runner GitHub, lalu membuat terowongan (*tunnel*) publik gratis menggunakan **Cloudflare Quick Tunnels** (`try.cloudflare.com`). 
+Ketika tautan dibuka di browser, Anda akan langsung disajikan terminal interaktif lengkap dengan akses **KVM penuh**, sehingga Anda bisa membuat, menjalankan, dan menguji MicroVM (`msb`) langsung dari browser secara gratis!
+
+#### Cara Menjalankan KVM Web Terminal:
+1. Pindahkan berkas (*commit* & *push*) ke repositori GitHub Anda.
+2. Buka tab **Actions** di repositori GitHub Anda (di akun utama atau akun kedua hasil fork).
+3. Pilih workflow **"Interactive KVM Web Terminal"** di sebelah kiri.
+4. Klik **Run workflow**.
+5. Buka detail pekerjaan (*Job*), dan Anda akan melihat **Tautan Cloudflare** yang tercetak di log atau di halaman **Job Summary** (contoh: `https://xxxx.trycloudflare.com`).
+6. Klik tautan tersebut dan nikmati terminal KVM gratis Anda selama maksimal 6 jam!
+
+### Alur 2: Build & Test Sandbox ([test-sandbox.yml](file:///workspaces/dockerAiCosmoz/.github/workflows/test-sandbox.yml))
+Digunakan untuk menguji pembangunan (*build*) image kustom dan melakukan tes fungsionalitas KVM secara otomatis di runner GitHub.
 
 ---
 
-## 4. Pilihan D: GitHub Actions (Testing & CI/CD di Runner GitHub)
+## Fitur Utama Masing-masing Lingkungan
+| Fitur | Docker Sandbox | Microsandbox (KVM) | Modal Sandbox | GitHub Actions Web Terminal |
+| :--- | :--- | :--- | :--- | :--- |
+| **Lokasi** | Lokal | Lokal | Cloud | Cloud (Runner GitHub) |
+| **Teknologi** | Kontainer Docker | MicroVM (libkrun) | Kontainer gVisor | VM Runner + Cloudflare Tunnel |
+| **Kebutuhan Biaya** | Gratis | Gratis | Bayar (Batas $30/bln) | Gratis (Batas 6 jam/run) |
+| **Batas Waktu** | Tidak ada | Tidak ada | Maks. 1 jam | Maks. 6 jam |
+| **Persistensi File** | Ya (Volume Mount) | Ya (Writable overlay) | Tidak (Hilang saat exit) | Tidak (Hilang setelah 6 jam) |
+| **Akses Browser** | Tidak (Lewat terminal) | Tidak (Lewat terminal) | Tidak (Lewat terminal) | **Ya (Terminal Web Interaktif)** |
+| **Akses KVM** | Tidak | Ya | Tidak | **Ya (Hardware-isolated)** |
 
-Kami telah menambahkan konfigurasi alur kerja GitHub Actions di berkas [.github/workflows/test-sandbox.yml](file:///workspaces/dockerAiCosmoz/.github/workflows/test-sandbox.yml) yang dapat melakukan hal berikut:
-1.  **Build & Push**: Membangun Docker image kustom Anda dan menyimpannya di **GitHub Container Registry (GHCR)** secara gratis.
-2.  **KVM Runner Test**: Menjalankan pengujian MicroVM (`msb`) langsung di atas runner GitHub Actions (karena runner Linux GitHub mendukung virtualisasi hardware KVM!).
-
-### Cara Memicu Pengujian di GitHub Actions:
-1. Commit semua berkas baru ke repository Anda.
-2. Push ke branch `main`.
-3. Alur kerja akan berjalan secara otomatis, atau Anda dapat memicunya secara manual dari tab **Actions** di repositori GitHub Anda (melalui fitur *workflow_dispatch*).

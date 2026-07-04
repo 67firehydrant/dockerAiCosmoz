@@ -1,0 +1,91 @@
+name: Interactive KVM Web Terminal
+
+on:
+  workflow_dispatch:
+
+jobs:
+  web-terminal:
+    name: Start Web Terminal with KVM
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure KVM Permissions
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo "KVM is available on this runner!"
+            sudo chmod 666 /dev/kvm
+          else
+            echo "Error: KVM is not available."
+            exit 1
+          fi
+
+      - name: Install Microsandbox (msb)
+        run: |
+          curl -fsSL https://install.microsandbox.dev | sh
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache OCI Images
+        run: |
+          # Pre-pull image agar instan saat dijalankan di terminal
+          /home/runner/.local/bin/msb pull alpine &
+          /home/runner/.local/bin/msb pull ubuntu:24.04 &
+
+      - name: Install ttyd (Web Terminal)
+        run: |
+          sudo curl -sLo /usr/local/bin/ttyd https://github.com/tsl0922/ttyd/releases/download/1.7.7/ttyd.x86_64
+          sudo chmod +x /usr/local/bin/ttyd
+
+      - name: Install Cloudflared (Tunnel)
+        run: |
+          curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
+          chmod +x cloudflared
+
+      - name: Start ttyd Web Terminal
+        run: |
+          # Jalankan ttyd di port 7681 yang menjalankan bash
+          ttyd -p 7681 bash &
+
+      - name: Start Cloudflare Tunnel
+        run: |
+          # Jalankan cloudflared tunnel secara background dan log ke file
+          ./cloudflared tunnel --url http://localhost:7681 > cloudflared.log 2>&1 &
+
+      - name: Expose Tunnel URL
+        run: |
+          echo "Menunggu Cloudflare Tunnel membuat tautan publik..."
+          # Loop selama maksimal 30 detik untuk mendeteksi URL trycloudflare
+          for i in {1..30}; do
+            if grep -q "trycloudflare.com" cloudflared.log; then
+              # Ekstrak URL trycloudflare
+              URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" cloudflared.log | head -n 1)
+              
+              echo -e "\n\n"
+              echo -e "\033[92m=================================================================\033[0m"
+              echo -e "\033[92m                  KVM WEB TERMINAL SIAP DIGUNAKAN!               \033[0m"
+              echo -e "  Klik tautan di bawah ini untuk mengakses terminal Ubuntu Anda:  "
+              echo -e "  \033[96m$URL\033[0m"
+              echo -e "\n  Tautan ini aktif selama workflow ini berjalan (maks. 6 jam)."
+              echo -e "\033[92m=================================================================\033[0m"
+              echo -e "\n\n"
+              
+              # Tulis URL ke ringkasan pekerjaan (Job Summary) agar mudah diklik oleh user di UI GitHub
+              echo "### 🖥️ KVM Web Terminal" >> $GITHUB_STEP_SUMMARY
+              echo "Klik tautan berikut untuk membuka terminal interaktif:" >> $GITHUB_STEP_SUMMARY
+              echo "👉 **[$URL]($URL)**" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Perintah bawaan yang bisa Anda coba di web terminal:" >> $GITHUB_STEP_SUMMARY
+              echo "*   \`msb run alpine -- fastfetch\`" >> $GITHUB_STEP_SUMMARY
+              echo "*   \`msb run ubuntu:24.04 -- bash\`" >> $GITHUB_STEP_SUMMARY
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Keep Runner Alive
+        run: |
+          echo "Menjaga Runner tetap hidup. Silakan gunakan tautan web terminal Anda."
+          echo "Pekerjaan ini akan otomatis berhenti setelah 6 jam atau jika Anda menekan 'Cancel workflow'."
+          # Sleep selama 6 jam (batas maksimal GitHub Actions job)
+          sleep 21600

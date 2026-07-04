@@ -42,15 +42,21 @@ jobs:
           curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
           chmod +x cloudflared
 
-      - name: Start ttyd Web Terminal
+      - name: Install Flask Dependency
         run: |
-          # Jalankan ttyd di port 7681 yang menjalankan bash
-          ttyd -p 7681 bash &
+          pip install flask
+
+      - name: Start Web Control Panel Dashboard
+        run: |
+          # Jalankan dashboard panel Flask secara background pada port 5000
+          # Menambahkan path lokal ke PATH agar msb terdeteksi oleh python script
+          export PATH="/home/runner/.local/bin:$PATH"
+          python3 modal/dashboard.py > dashboard.log 2>&1 &
 
       - name: Start Cloudflare Tunnel
         run: |
-          # Jalankan cloudflared tunnel secara background dan log ke file
-          ./cloudflared tunnel --url http://localhost:7681 > cloudflared.log 2>&1 &
+          # Tunnel port 5000 (Flask dashboard) ke publik
+          ./cloudflared tunnel --url http://localhost:5000 > cloudflared.log 2>&1 &
 
       - name: Expose Tunnel URL
         run: |
@@ -63,21 +69,22 @@ jobs:
               
               echo -e "\n\n"
               echo -e "\033[92m=================================================================\033[0m"
-              echo -e "\033[92m                  KVM WEB TERMINAL SIAP DIGUNAKAN!               \033[0m"
-              echo -e "  Klik tautan di bawah ini untuk mengakses terminal Ubuntu Anda:  "
+              echo -e "\033[92m                  KVM DASHBOARD PANEL SIAP DIGUNAKAN!            \033[0m"
+              echo -e "  Klik tautan di bawah ini untuk mengakses panel visual Anda:     "
               echo -e "  \033[96m$URL\033[0m"
               echo -e "\n  Tautan ini aktif selama workflow ini berjalan (maks. 6 jam)."
               echo -e "\033[92m=================================================================\033[0m"
               echo -e "\n\n"
               
               # Tulis URL ke ringkasan pekerjaan (Job Summary) agar mudah diklik oleh user di UI GitHub
-              echo "### 🖥️ KVM Web Terminal" >> $GITHUB_STEP_SUMMARY
-              echo "Klik tautan berikut untuk membuka terminal interaktif:" >> $GITHUB_STEP_SUMMARY
+              echo "### 🖥️ KVM Web Dashboard Panel" >> $GITHUB_STEP_SUMMARY
+              echo "Klik tautan berikut untuk membuka panel kontrol visual sandbox Anda:" >> $GITHUB_STEP_SUMMARY
               echo "👉 **[$URL]($URL)**" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "Perintah bawaan yang bisa Anda coba di web terminal:" >> $GITHUB_STEP_SUMMARY
-              echo "*   \`msb run alpine -- fastfetch\`" >> $GITHUB_STEP_SUMMARY
-              echo "*   \`msb run ubuntu:24.04 -- bash\`" >> $GITHUB_STEP_SUMMARY
+              echo "Dari panel ini, Anda dapat:" >> $GITHUB_STEP_SUMMARY
+              echo "1. Memilih OS (Ubuntu 24.04, Debian, Alpine) untuk MicroVM." >> $GITHUB_STEP_SUMMARY
+              echo "2. Menentukan jumlah vCPU dan RAM secara visual." >> $GITHUB_STEP_SUMMARY
+              echo "3. Meluncurkan VM secara instan dan membuka terminal web interaktif untuk masing-masing VM." >> $GITHUB_STEP_SUMMARY
               break
             fi
             sleep 1

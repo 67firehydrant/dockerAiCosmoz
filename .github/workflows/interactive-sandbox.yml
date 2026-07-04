@@ -58,7 +58,7 @@ jobs:
           echo "Menunggu Cloudflare Tunnel membuat tautan publik..."
           # Loop selama maksimal 30 detik untuk mendeteksi URL trycloudflare
           for i in {1..30}; do
-            if grep -q "trycloudflare.com" cloudflared.log; then
+            if grep -qE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" cloudflared.log; then
               # Ekstrak URL trycloudflare
               URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" cloudflared.log | head -n 1)
               

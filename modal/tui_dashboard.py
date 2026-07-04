@@ -7,11 +7,28 @@ import time
 def clear_screen():
     print("\033[H\033[J", end="")
 
+def get_char():
+    try:
+        import termios
+        import tty
+        fd = sys.stdin.fileno()
+        old_settings = termios.tcgetattr(fd)
+        try:
+            tty.setraw(sys.stdin.fileno())
+            ch = sys.stdin.read(1)
+        finally:
+            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+        return ch
+    except Exception:
+        # Fallback jika bukan TTY
+        return sys.stdin.read(1)
+
 def print_header():
     clear_screen()
     print("\033[96m" + "="*65 + "\033[0m")
     print("\033[92m" + "           KVM MICROVM TERMINAL CONTROL PANEL (TUI)          " + "\033[0m")
     print("\033[90m" + "  Kelola sandbox virtualisasi hardware KVM Anda langsung dari terminal  " + "\033[0m")
+    print("\033[93m" + "  TIP: Klik di dalam area terminal ini jika tombol tidak merespons.   " + "\033[0m")
     print("\033[96m" + "="*65 + "\033[0m\n")
 
 def get_sandboxes():
@@ -49,7 +66,8 @@ def create_menu():
     print("\033[93m=== BUAT MICROVM LOKAL BARU ===\033[0m\n")
     
     # 1. Nama VM
-    name = input("\033[92mMasukkan nama sandbox (default: local-vm): \033[0m").strip()
+    print("\033[92mMasukkan nama sandbox (default: local-vm): \033[0m", end="", flush=True)
+    name = input().strip()
     if not name:
         name = "local-vm"
         
@@ -59,7 +77,9 @@ def create_menu():
     print("  [2] Debian Slim")
     print("  [3] Alpine Linux (Sangat Ringan)")
     print("  [4] Python 3.11 Slim")
-    img_choice = input("\033[92mPilih nomor image [1-4, default: 1]: \033[0m").strip()
+    print("\033[92mPilih nomor image [1-4, default: 1]: \033[0m", end="", flush=True)
+    img_choice = get_char()
+    print(img_choice)
     if img_choice == "2":
         image = "debian:slim"
     elif img_choice == "3":
@@ -74,7 +94,9 @@ def create_menu():
     print("  [1] 1 vCPU")
     print("  [2] 2 vCPU -- Default")
     print("  [3] 4 vCPU")
-    cpu_choice = input("\033[92mPilih CPU [1-3, default: 2]: \033[0m").strip()
+    print("\033[92mPilih CPU [1-3, default: 2]: \033[0m", end="", flush=True)
+    cpu_choice = get_char()
+    print(cpu_choice)
     cpu = "4" if cpu_choice == "3" else ("1" if cpu_choice == "1" else "2")
     
     # 4. RAM
@@ -83,7 +105,9 @@ def create_menu():
     print("  [2] 1 GB -- Default")
     print("  [3] 2 GB")
     print("  [4] 4 GB")
-    ram_choice = input("\033[92mPilih RAM [1-4, default: 2]: \033[0m").strip()
+    print("\033[92mPilih RAM [1-4, default: 2]: \033[0m", end="", flush=True)
+    ram_choice = get_char()
+    print(ram_choice)
     if ram_choice == "1":
         ram = "512M"
     elif ram_choice == "3":
@@ -121,7 +145,8 @@ def create_menu():
     else:
         print(f"\n\033[91m✗ Gagal membuat sandbox.\033[0m")
         
-    input("\nTekan Enter untuk kembali ke Menu Utama...")
+    print("\nTekan tombol apa saja untuk kembali ke Menu Utama...")
+    get_char()
 
 def vm_operations_menu(vm):
     name = vm["name"]
@@ -146,10 +171,12 @@ def vm_operations_menu(vm):
         print("  \033[93m[3]\033[0m 🗑️  Hapus Permanen (Remove)")
         print("  \033[93m[B]\033[0m Kembali ke Daftar VM")
         print("\n" + "="*65)
+        print("\033[92mPilih opsi [1, 2, 3, B]: \033[0m", end="", flush=True)
         
-        choice = input("\033[92mPilih opsi: \033[0m").strip()
+        choice = get_char().upper()
+        print(choice)
         
-        if choice.lower() == 'b':
+        if choice == 'B':
             return
             
         if status == "running":
@@ -166,7 +193,10 @@ def vm_operations_menu(vm):
                 print(f"\n\033[94mMenghentikan sandbox '{name}'...\033[0m")
                 subprocess.run(["msb", "stop", name])
             elif choice == "3":
-                if input(f"\n\033[91mApakah Anda yakin ingin menghapus {name}? (y/N): \033[0m").strip().lower() == 'y':
+                print(f"\n\033[91mApakah Anda yakin ingin menghapus {name}? (y/N): \033[0m", end="", flush=True)
+                confirm = get_char().lower()
+                print(confirm)
+                if confirm == 'y':
                     subprocess.run(["msb", "stop", name])
                     subprocess.run(["msb", "rm", name])
                     return
@@ -175,7 +205,10 @@ def vm_operations_menu(vm):
                 print(f"\n\033[94mMenyalakan sandbox '{name}'...\033[0m")
                 subprocess.run(["msb", "start", name])
             elif choice == "3":
-                if input(f"\n\033[91mApakah Anda yakin ingin menghapus {name}? (y/N): \033[0m").strip().lower() == 'y':
+                print(f"\n\033[91mApakah Anda yakin ingin menghapus {name}? (y/N): \033[0m", end="", flush=True)
+                confirm = get_char().lower()
+                print(confirm)
+                if confirm == 'y':
                     subprocess.run(["msb", "rm", name])
                     return
 
@@ -188,7 +221,8 @@ def manage_menu():
         if not sandboxes:
             print("  Belum ada sandbox yang dibuat.")
             print("\n" + "="*65)
-            input("\nTekan Enter untuk kembali ke Menu Utama...")
+            print("\nTekan tombol apa saja untuk kembali ke Menu Utama...")
+            get_char()
             return
             
         for idx, vm in enumerate(sandboxes, 1):
@@ -197,10 +231,12 @@ def manage_menu():
             
         print(f"  \033[93m[B]\033[0m Kembali ke Menu Utama")
         print("\n" + "="*65)
+        print("\033[92mPilih nomor VM untuk mengelolanya (atau B): \033[0m", end="", flush=True)
         
-        choice = input("\033[92mPilih nomor VM untuk mengelolanya (atau B): \033[0m").strip()
+        choice = get_char().upper()
+        print(choice)
         
-        if choice.lower() == 'b':
+        if choice == 'B':
             return
             
         try:
@@ -209,9 +245,11 @@ def manage_menu():
                 vm = sandboxes[val - 1]
                 vm_operations_menu(vm)
             else:
-                input("\n\033[91mNomor tidak valid. Tekan Enter untuk mencoba lagi...\033[0m")
+                print("\n\033[91mNomor tidak valid.\033[0m")
+                time.sleep(1)
         except ValueError:
-            input("\n\033[91mPilihan tidak valid. Tekan Enter untuk mencoba lagi...\033[0m")
+            print("\n\033[91mPilihan tidak valid.\033[0m")
+            time.sleep(1)
 
 def main():
     while True:
@@ -221,8 +259,10 @@ def main():
         print("  \033[93m[3]\033[0m 🐚 Masuk ke Shell Host Runner (Normal Bash)")
         print("  \033[93m[4]\033[0m ⏹️  Keluar / Stop Terminal")
         print("\n" + "="*65)
+        print("\033[92mPilih opsi [1-4]: \033[0m", end="", flush=True)
         
-        choice = input("\033[92mPilih opsi [1-4]: \033[0m").strip()
+        choice = get_char()
+        print(choice) # Echo karakter yang ditekan
         
         if choice == "1":
             create_menu()
@@ -237,10 +277,10 @@ def main():
             print("Terima kasih telah menggunakan KVM Terminal Panel. Sampai jumpa!")
             sys.exit(0)
         else:
-            input("\n\033[91mPilihan tidak valid. Tekan Enter untuk mencoba lagi...\033[0m")
+            print("\n\033[91mPilihan tidak valid.\033[0m")
+            time.sleep(1)
 
 if __name__ == "__main__":
-    # Menambahkan path lokal ke PATH agar msb terdeteksi
     local_bin_path = os.path.expanduser("~/.local/bin")
     os.environ["PATH"] = f"{local_bin_path}:{os.environ.get('PATH', '')}"
     main()

@@ -42,24 +42,19 @@ jobs:
           curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
           chmod +x cloudflared
 
-      - name: Start Terminal Control Panel (TUI)
+      - name: Start TUI Services and Keep Alive
         run: |
-          # Jalankan ttyd pada port 5000 yang langsung mengeksekusi TUI dashboard python
+          # 1. Jalankan ttyd pada port 5000 secara background
           export PATH="/home/runner/.local/bin:$PATH"
           ttyd -W -p 5000 python3 modal/tui_dashboard.py &
-
-      - name: Start Cloudflare Tunnel
-        run: |
-          # Tunnel port 5000 (TUI terminal web) ke publik
+          
+          # 2. Jalankan cloudflared tunnel secara background
           ./cloudflared tunnel --url http://localhost:5000 > cloudflared.log 2>&1 &
-
-      - name: Expose Tunnel URL
-        run: |
+          
+          # 3. Menunggu Cloudflare membuat terowongan dan mengambil tautan publik
           echo "Menunggu Cloudflare Tunnel membuat tautan publik..."
-          # Loop selama maksimal 30 detik untuk mendeteksi URL trycloudflare
           for i in {1..30}; do
             if grep -qE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" cloudflared.log; then
-              # Ekstrak URL trycloudflare
               URL=$(grep -oE "https://[a-zA-Z0-9.-]+\.trycloudflare\.com" cloudflared.log | head -n 1)
               
               echo -e "\n\n"
@@ -71,7 +66,7 @@ jobs:
               echo -e "\033[92m=================================================================\033[0m"
               echo -e "\n\n"
               
-              # Tulis URL ke ringkasan pekerjaan (Job Summary) agar mudah diklik oleh user di UI GitHub
+              # Tulis ke Job Summary
               echo "### 🖥️ KVM Terminal Dashboard (TUI)" >> $GITHUB_STEP_SUMMARY
               echo "Klik tautan berikut untuk membuka terminal interaktif otomatis Anda:" >> $GITHUB_STEP_SUMMARY
               echo "👉 **[$URL]($URL)**" >> $GITHUB_STEP_SUMMARY
@@ -84,10 +79,8 @@ jobs:
             fi
             sleep 1
           done
-
-      - name: Keep Runner Alive
-        run: |
+          
+          # 4. Jaga agar runner tetap hidup (sleep 6 jam)
           echo "Menjaga Runner tetap hidup. Silakan gunakan tautan web terminal Anda."
           echo "Pekerjaan ini akan otomatis berhenti setelah 6 jam atau jika Anda menekan 'Cancel workflow'."
-          # Sleep selama 6 jam (batas maksimal GitHub Actions job)
           sleep 21600

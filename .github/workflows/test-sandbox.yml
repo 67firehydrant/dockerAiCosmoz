@@ -1,0 +1,86 @@
+name: Build, Push to GHCR, and Test with KVM
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    name: Build & Push Image to GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/docker-setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: actions/docker-login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata for Docker
+        id: meta
+        uses: actions/docker-metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}/sandbox-image
+          tags: |
+            type=raw,value=latest
+            type=ref,event=branch
+
+      - name: Build and push Docker image
+        uses: actions/docker-build-push-action@v5
+        with:
+          context: ./modal
+          file: ./modal/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  test-kvm:
+    name: Test with KVM & Microsandbox
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check KVM availability
+        run: |
+          if [ -e /dev/kvm ]; then
+            echo "KVM is available on the runner!"
+            sudo chmod 666 /dev/kvm
+          else
+            echo "KVM is not available. Testing as standard container instead."
+            exit 1
+          fi
+
+      - name: Install Microsandbox (msb)
+        run: |
+          curl -fsSL https://install.microsandbox.dev | sh
+          echo "/home/runner/.local/bin" >> $GITHUB_PATH
+
+      - name: Log in to GHCR for msb
+        run: |
+          # msb menggunakan config auth Docker yang tersimpan di ~/.docker/config.json
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Pull and Run MicroVM using msb
+        run: |
+          # Dapatkan nama image dengan huruf kecil (lower-case) untuk menghindari error tag Docker registry
+          IMAGE_NAME="ghcr.io/${{ github.repository }}/sandbox-image:latest"
+          IMAGE_NAME_LOWER=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          
+          echo "Pulling image dari GHCR: $IMAGE_NAME_LOWER"
+          msb pull $IMAGE_NAME_LOWER
+          
+          echo "Menjalankan MicroVM menggunakan msb..."
+          msb run -c 2 -m 1G $IMAGE_NAME_LOWER -- fastfetch

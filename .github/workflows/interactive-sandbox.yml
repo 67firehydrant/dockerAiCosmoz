@@ -42,20 +42,15 @@ jobs:
           curl -L --output cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64
           chmod +x cloudflared
 
-      - name: Install Flask Dependency
+      - name: Start Terminal Control Panel (TUI)
         run: |
-          pip install flask
-
-      - name: Start Web Control Panel Dashboard
-        run: |
-          # Jalankan dashboard panel Flask secara background pada port 5000
-          # Menambahkan path lokal ke PATH agar msb terdeteksi oleh python script
+          # Jalankan ttyd pada port 5000 yang langsung mengeksekusi TUI dashboard python
           export PATH="/home/runner/.local/bin:$PATH"
-          python3 modal/dashboard.py > dashboard.log 2>&1 &
+          ttyd -p 5000 python3 modal/tui_dashboard.py &
 
       - name: Start Cloudflare Tunnel
         run: |
-          # Tunnel port 5000 (Flask dashboard) ke publik
+          # Tunnel port 5000 (TUI terminal web) ke publik
           ./cloudflared tunnel --url http://localhost:5000 > cloudflared.log 2>&1 &
 
       - name: Expose Tunnel URL
@@ -69,22 +64,22 @@ jobs:
               
               echo -e "\n\n"
               echo -e "\033[92m=================================================================\033[0m"
-              echo -e "\033[92m                  KVM DASHBOARD PANEL SIAP DIGUNAKAN!            \033[0m"
-              echo -e "  Klik tautan di bawah ini untuk mengakses panel visual Anda:     "
+              echo -e "\033[92m                  KVM TERMINAL PANEL (TUI) READY!                \033[0m"
+              echo -e "  Klik tautan di bawah ini untuk membuka dashboard terminal:     "
               echo -e "  \033[96m$URL\033[0m"
               echo -e "\n  Tautan ini aktif selama workflow ini berjalan (maks. 6 jam)."
               echo -e "\033[92m=================================================================\033[0m"
               echo -e "\n\n"
               
               # Tulis URL ke ringkasan pekerjaan (Job Summary) agar mudah diklik oleh user di UI GitHub
-              echo "### 🖥️ KVM Web Dashboard Panel" >> $GITHUB_STEP_SUMMARY
-              echo "Klik tautan berikut untuk membuka panel kontrol visual sandbox Anda:" >> $GITHUB_STEP_SUMMARY
+              echo "### 🖥️ KVM Terminal Dashboard (TUI)" >> $GITHUB_STEP_SUMMARY
+              echo "Klik tautan berikut untuk membuka terminal interaktif otomatis Anda:" >> $GITHUB_STEP_SUMMARY
               echo "👉 **[$URL]($URL)**" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
-              echo "Dari panel ini, Anda dapat:" >> $GITHUB_STEP_SUMMARY
-              echo "1. Memilih OS (Ubuntu 24.04, Debian, Alpine) untuk MicroVM." >> $GITHUB_STEP_SUMMARY
-              echo "2. Menentukan jumlah vCPU dan RAM secara visual." >> $GITHUB_STEP_SUMMARY
-              echo "3. Meluncurkan VM secara instan dan membuka terminal web interaktif untuk masing-masing VM." >> $GITHUB_STEP_SUMMARY
+              echo "Setelah tautan dibuka, Anda akan langsung disajikan menu interaktif:" >> $GITHUB_STEP_SUMMARY
+              echo "1. **Opsi 1**: Buat MicroVM Baru secara otomatis (pilih OS Ubuntu/Debian/Alpine, vCPU, RAM)." >> $GITHUB_STEP_SUMMARY
+              echo "2. **Opsi 2**: Kelola & langsung masuk ke shell MicroVM yang aktif tanpa mengetik perintah manual." >> $GITHUB_STEP_SUMMARY
+              echo "3. **Opsi 3**: Keluar ke normal host bash shell untuk mengetik perintah mentah." >> $GITHUB_STEP_SUMMARY
               break
             fi
             sleep 1

@@ -58,17 +58,17 @@ Skrip [run_sandbox.py](file:///workspaces/dockerAiCosmoz/modal/run_sandbox.py) d
 
 Kami telah menambahkan dua alur kerja GitHub Actions:
 
-### Alur 1: KVM Web Terminal ([interactive-sandbox.yml](file:///workspaces/dockerAiCosmoz/.github/workflows/interactive-sandbox.yml))
-Alur ini akan meluncurkan terminal web (`ttyd`) di atas server runner GitHub, lalu membuat terowongan (*tunnel*) publik gratis menggunakan **Cloudflare Quick Tunnels** (`try.cloudflare.com`). 
-Ketika tautan dibuka di browser, Anda akan langsung disajikan terminal interaktif lengkap dengan akses **KVM penuh**, sehingga Anda bisa membuat, menjalankan, dan menguji MicroVM (`msb`) langsung dari browser secara gratis!
+### Alur 1: KVM Terminal Dashboard TUI ([interactive-sandbox.yml](file:///workspaces/dockerAiCosmoz/.github/workflows/interactive-sandbox.yml))
+Alur ini akan meluncurkan web terminal (`ttyd`) di atas runner GitHub yang langsung menjalankan **TUI Control Panel (Dashboard Terminal)** berbasis menu teks yang ramah pengguna, kemudian men-tunnel port tersebut secara gratis menggunakan **Cloudflare Quick Tunnels** (`try.cloudflare.com`).
+Ketika Anda membuka tautan Cloudflare di browser, Anda akan langsung melihat dashboard menu interaktif di dalam terminal tanpa perlu mengetikkan perintah manual untuk membuat, menyalakan, menghentikan, atau masuk ke dalam MicroVM (`msb`)!
 
-#### Cara Menjalankan KVM Web Terminal:
+#### Cara Menjalankan KVM Terminal Dashboard:
 1. Pindahkan berkas (*commit* & *push*) ke repositori GitHub Anda.
 2. Buka tab **Actions** di repositori GitHub Anda (di akun utama atau akun kedua hasil fork).
 3. Pilih workflow **"Interactive KVM Web Terminal"** di sebelah kiri.
 4. Klik **Run workflow**.
 5. Buka detail pekerjaan (*Job*), dan Anda akan melihat **Tautan Cloudflare** yang tercetak di log atau di halaman **Job Summary** (contoh: `https://xxxx.trycloudflare.com`).
-6. Klik tautan tersebut dan nikmati terminal KVM gratis Anda selama maksimal 6 jam!
+6. Buka tautan tersebut di browser Anda untuk langsung berinteraksi dengan dashboard terminal Anda (aktif hingga 6 jam)!
 
 ### Alur 2: Build & Test Sandbox ([test-sandbox.yml](file:///workspaces/dockerAiCosmoz/.github/workflows/test-sandbox.yml))
 Digunakan untuk menguji pembangunan (*build*) image kustom dan melakukan tes fungsionalitas KVM secara otomatis di runner GitHub.
